@@ -54,6 +54,7 @@ program_parser.add_argument("--nums", type=int, nargs='+')
 program_parser.add_argument("--project", type=str, required=True)
 program_parser.add_argument("--group", type=str, required=True)
 program_parser.add_argument("--run_name", type=str, required=True)
+program_parser.add_argument("--num_workers", type=int, default=4)
 
 # Add model specific args
 # parser = SlotAttentionAE.add_model_specific_args(parent_parser=parser)
@@ -94,8 +95,8 @@ val_dataset = CLEVR(images_path=os.path.join(args.train_path, 'images', 'val'),
 # val_dataset = Stub()
 
 
-train_loader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=16, shuffle=True, drop_last=True)
-val_loader = DataLoader(val_dataset, batch_size=args.batch_size, num_workers=16, shuffle=False, drop_last=True)
+train_loader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=True, drop_last=True)
+val_loader = DataLoader(val_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False, drop_last=True)
 
 # ------------------------------------------------------------
 # Load model
