@@ -121,30 +121,33 @@ class SlotAttentionAE(pl.LightningModule):
         slots = self.slots_lin(slots)
         result, recons, masks = self.decode_slots(slots)
 
-        if self.use_weightnorm_sampler:
-            raise NotImplementedError('Sampling by weight norm is not implemented')
-        else:
-            i = np.random.choice(self.slot_size)
+        if self.rtd_loss_coef > 0:
+            if self.use_weightnorm_sampler:
+                raise NotImplementedError('Sampling by weight norm is not implemented')
+            else:
+                i = np.random.choice(self.slot_size)
 
-        j = np.random.choice(self.num_slots)
-        m_batch = slots[:, j, i].mean(0, keepdim=True)
-        s_batch = slots[:, j, i].std(0, keepdim=True)
-        z_norm = (slots[:, j, i] - m_batch) / s_batch
-        prob = normal_s(z_norm)
-        C = 1 / 8
-        sgn = torch.sign(torch.randn(1)).item()
-        if sgn > 0:
-            mask = (prob + C < 1)
-        else:
-            mask = (prob - C > 0)
-            C = -C
+            j = np.random.choice(self.num_slots)
+            m_batch = slots[:, j, i].mean(0, keepdim=True)
+            s_batch = slots[:, j, i].std(0, keepdim=True)
+            z_norm = (slots[:, j, i] - m_batch) / s_batch
+            prob = normal_s(z_norm)
+            C = 1 / 8
+            sgn = torch.sign(torch.randn(1)).item()
+            if sgn > 0:
+                mask = (prob + C < 1)
+            else:
+                mask = (prob - C > 0)
+                C = -C
 
-        z_valid = slots[mask].clone()
-        z_new = z_valid.clone()
-        z_new[:, j, i] = normal_sinv(prob[mask] + C) * s_batch + m_batch
-        _, _, mask_valid = self.decode_slots(z_valid)
-        _, _, mask_new = self.decode_slots(z_new)
-        rtd_loss = self.rtd_regularizer.compute_reg(mask_valid[:, j], mask_new[:, j])
+            z_valid = slots[mask].clone()
+            z_new = z_valid.clone()
+            z_new[:, j, i] = normal_sinv(prob[mask] + C) * s_batch + m_batch
+            _, _, mask_valid = self.decode_slots(z_valid)
+            _, _, mask_new = self.decode_slots(z_new)
+            rtd_loss = self.rtd_regularizer.compute_reg(mask_valid[:, j], mask_new[:, j])
+        else:
+            rtd_loss = torch.zeros(1, device=result.device)
 
         return result, recons, kl_loss, rtd_loss
 
