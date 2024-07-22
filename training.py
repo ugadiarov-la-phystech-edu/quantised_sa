@@ -31,6 +31,10 @@ DEFAULT_SEED = 42
 parser = ArgumentParser()
 
 parser.add_argument('--max_epochs', type=int, default=100)
+parser.add_argument('--rtd_loss_coef', type=float, default=6.)
+parser.add_argument('--rtd_lp', type=float, default=2.)
+parser.add_argument('--use_weightnorm_sampler', action='store_true')
+parser.add_argument('--no-rtd_q_normalize', dest='rtd_q_normalize', action='store_false')
 
 # add PROGRAM level args
 program_parser = parser.add_argument_group('program')
@@ -46,7 +50,6 @@ program_parser.add_argument("--batch_size", type=int, default=2)
 program_parser.add_argument("--from_checkpoint", type=str, default='')
 program_parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
 program_parser.add_argument("--nums", type=int, nargs='+')
-
 
 # Add model specific args
 # parser = SlotAttentionAE.add_model_specific_args(parent_parser=parser)
