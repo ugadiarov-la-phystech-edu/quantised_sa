@@ -72,6 +72,7 @@ args = parser.parse_args()
 torch.manual_seed(args.seed)
 random.seed(args.seed)
 np.random.seed(args.seed)
+torch.set_float32_matmul_precision('medium')
 
 # ------------------------------------------------------------
 # Logger
