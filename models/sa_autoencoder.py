@@ -1,3 +1,4 @@
+import numpy as np
 import pytorch_lightning as pl
 import torch
 from torch import nn
@@ -7,6 +8,29 @@ from torch.optim import lr_scheduler
 from modules import Decoder, PosEmbeds, SlotAttention, CoordQuantizer
 from modules.slot_attention import SlotAttentionBase
 from utils import spatial_broadcast, spatial_flatten
+
+
+normal_s = lambda x: 0.5 * (torch.erf(x/np.sqrt(2)) + 1)
+normal_sinv = lambda x: np.sqrt(2) * torch.erfinv(2 * x - 1)
+
+
+def visualize(images):
+    B, _, H, W = images[0].shape  # first image is observation
+    viz_imgs = []
+    for _img in images:
+        if len(_img.shape) == 4:
+            viz_imgs.append(_img)
+        else:
+            viz_imgs += list(torch.unbind(_img, dim=1))
+    viz_imgs = torch.cat(viz_imgs, dim=-1)
+    # return torch.cat(torch.unbind(viz_imgs,dim=0), dim=-2).unsqueeze(0)
+    return viz_imgs
+
+
+def for_viz(x):
+    return np.array(
+        (x.clamp(-1, 1).permute(0, 2, 3, 1).detach().cpu().numpy() + 1) / 2 * 255.0, dtype=np.uint8
+    )
 
 
 class SlotAttentionAE(pl.LightningModule):
@@ -33,6 +57,7 @@ class SlotAttentionAE(pl.LightningModule):
         self.in_channels = in_channels
         self.slot_size = slot_size
         self.hidden_size = hidden_size
+        self.log_images = 8
         self.encoder = nn.Sequential(
             nn.Conv2d(in_channels, hidden_size, kernel_size=5, padding=(2, 2)), nn.ReLU(),
             *[nn.Sequential(nn.Conv2d(hidden_size, hidden_size, kernel_size=5, padding=(2, 2)), nn.ReLU()) for _ in range(3)]
@@ -84,10 +109,13 @@ class SlotAttentionAE(pl.LightningModule):
         result = torch.sum(recons, dim=1)
         return result, recons, kl_loss
 
-    def step(self, batch):
+    def step(self, batch, return_result=False):
         imgs = batch['image']
-        result, _, kl_loss = self(imgs)
+        result, recons, kl_loss = self(imgs)
         loss = F.mse_loss(result, imgs)
+        if return_result:
+            return loss, kl_loss, result, recons
+
         return loss, kl_loss
 
     def training_step(self, batch, batch_idx):
@@ -109,9 +137,15 @@ class SlotAttentionAE(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        loss, kl_loss = self.step(batch)
+        loss, kl_loss, result, recons = self.step(batch, return_result=True)
         self.log('validating MSE', loss, on_step=False, on_epoch=True)
         self.log('validating KL', kl_loss, on_step=False, on_epoch=True)
+        if batch_idx == 0:
+            imgs = batch['image'][:self.log_images]
+            result = result[:self.log_images]
+            recons = recons[:self.log_images]
+            self.logger.log_image(key="samples", images=list(for_viz(visualize([imgs, result, recons]))))
+
         return loss
 
     def configure_optimizers(self):
