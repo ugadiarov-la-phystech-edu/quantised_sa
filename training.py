@@ -35,6 +35,7 @@ parser.add_argument('--rtd_loss_coef', type=float, default=6.)
 parser.add_argument('--rtd_lp', type=float, default=2.)
 parser.add_argument('--use_weightnorm_sampler', action='store_true')
 parser.add_argument('--no-rtd_q_normalize', dest='rtd_q_normalize', action='store_false')
+parser.add_argument('--num_slots', type=int, default=10)
 
 # add PROGRAM level args
 program_parser = parser.add_argument_group('program')
