@@ -50,6 +50,9 @@ program_parser.add_argument("--batch_size", type=int, default=2)
 program_parser.add_argument("--from_checkpoint", type=str, default='')
 program_parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
 program_parser.add_argument("--nums", type=int, nargs='+')
+program_parser.add_argument("--project", type=str, required=True)
+program_parser.add_argument("--group", type=str, required=True)
+program_parser.add_argument("--run_name", type=str, required=True)
 
 # Add model specific args
 # parser = SlotAttentionAE.add_model_specific_args(parent_parser=parser)
@@ -104,9 +107,8 @@ dict_args = vars(args)
 autoencoder = SlotAttentionAE(**dict_args)
 state_dict = torch.load("./clevr10_sp")
 autoencoder.load_state_dict(state_dict=state_dict, strict=False)
-project_name = 'set_prediction_CLEVR'
 
-wandb_logger = WandbLogger(project='set_prediction_CLEVR', name=f'nums {args.nums!r} s {args.seed}')
+wandb_logger = WandbLogger(project=args.project, group=args.group, name=args.run_name)
 
 # ------------------------------------------------------------
 # Callbacks
