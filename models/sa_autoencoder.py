@@ -47,7 +47,6 @@ class SlotAttentionAE(pl.LightningModule):
         beta=2,
         lr=4e-4,
         num_steps=int(3e5),
-        rtd_loss_coef=6,
         **kwargs,
         ):
         super().__init__()

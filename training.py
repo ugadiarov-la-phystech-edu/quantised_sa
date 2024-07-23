@@ -31,6 +31,7 @@ DEFAULT_SEED = 42
 parser = ArgumentParser()
 
 parser.add_argument('--max_epochs', type=int, default=100)
+parser.add_argument('--num_slots', type=int, default=10)
 
 # add PROGRAM level args
 program_parser = parser.add_argument_group('program')
@@ -46,7 +47,10 @@ program_parser.add_argument("--batch_size", type=int, default=2)
 program_parser.add_argument("--from_checkpoint", type=str, default='')
 program_parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
 program_parser.add_argument("--nums", type=int, nargs='+')
-
+program_parser.add_argument("--project", type=str, required=True)
+program_parser.add_argument("--group", type=str, required=True)
+program_parser.add_argument("--run_name", type=str, required=True)
+program_parser.add_argument("--num_workers", type=int, default=4)
 
 # Add model specific args
 # parser = SlotAttentionAE.add_model_specific_args(parent_parser=parser)
@@ -64,6 +68,7 @@ args = parser.parse_args()
 torch.manual_seed(args.seed)
 random.seed(args.seed)
 np.random.seed(args.seed)
+torch.set_float32_matmul_precision('medium')
 
 # ------------------------------------------------------------
 # Logger
@@ -87,8 +92,8 @@ val_dataset = CLEVR(images_path=os.path.join(args.train_path, 'images', 'val'),
 # val_dataset = Stub()
 
 
-train_loader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=16, shuffle=True, drop_last=True)
-val_loader = DataLoader(val_dataset, batch_size=args.batch_size, num_workers=16, shuffle=True, drop_last=True)
+train_loader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=True, drop_last=True)
+val_loader = DataLoader(val_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=True, drop_last=True)
 
 # ------------------------------------------------------------
 # Load model
@@ -101,9 +106,8 @@ dict_args = vars(args)
 autoencoder = SlotAttentionAE(**dict_args)
 state_dict = torch.load("./clevr10_sp")
 autoencoder.load_state_dict(state_dict=state_dict, strict=False)
-project_name = 'set_prediction_CLEVR'
 
-wandb_logger = WandbLogger(project='set_prediction_CLEVR', name=f'nums {args.nums!r} s {args.seed}')
+wandb_logger = WandbLogger(project=args.project, group=args.group, name=args.run_name)
 
 # ------------------------------------------------------------
 # Callbacks
